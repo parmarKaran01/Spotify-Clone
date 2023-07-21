@@ -37,7 +37,7 @@ function App() {
         </div>
 
         {width <= 786 ? (
-          <div className="absolute z-50 bg-black w-full bottom-0 left-0">
+          <div className="fixed z-50 bg-black w-full bottom-0 left-0">
             <MobilePlayer />
           </div>
         ) : (

@@ -1,4 +1,4 @@
-import { Container, IconButton, Typography } from "@mui/material";
+import { Container, IconButton, Slider, Typography } from "@mui/material";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import PauseIcon from "@mui/icons-material/Pause";
 import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
@@ -9,18 +9,12 @@ import { MainContext } from "../context/MainContext";
 import { usePalette } from "react-palette";
 
 export default function Player() {
-  const { selectedSong, setSelectedSong, currentPlaylist, color, setColor } =
+  const { selectedSong, setSelectedSong, currentPlaylist, setColor } =
     useContext(MainContext);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
   const audioPlayer = useRef();
   const progressBar = useRef();
-
-  const currentSongIndex = useMemo(() => {
-    if (currentPlaylist === undefined) return -1;
-    return currentPlaylist.findIndex((item) => {
-      return item._id === selectedSong._id;
-    });
-  }, [selectedSong, currentPlaylist]);
   const {
     data: colorData,
     loading: colorLoading,
@@ -28,38 +22,51 @@ export default function Player() {
   } = usePalette(selectedSong.photo);
 
   useEffect(() => {
-    setColor(colorData.darkMuted);
+    setColor(colorData.darkVibrant);
   }, [colorData]);
+
+  const currentSongIndex = useMemo(() => {
+    if (currentPlaylist === undefined) return -1;
+    return currentPlaylist.findIndex((item) => {
+      return item._id === selectedSong._id;
+    });
+  }, [selectedSong, currentPlaylist]);
   useEffect(() => {
     if (isPlaying) {
       audioPlayer.current.play();
-      console.log(audioPlayer.current);
     } else {
       audioPlayer.current.pause();
     }
-  }, [selectedSong, isPlaying]);
+  }, [isPlaying, selectedSong]);
 
-  const changeRange = () => {
-    audioPlayer.current.currentTime = progressBar.current.value;
+  useEffect(() => {
+    audioPlayer.current.currentTime = 0;
+    setIsPlaying(true);
+  }, [selectedSong]);
+
+  const changeRange = (e) => {
+    audioPlayer.current.currentTime =
+      (e.target.value * audioPlayer.current.duration) / 100;
   };
 
   const handlePrev = () => {
     if (currentSongIndex > 0) {
       const newInd = currentSongIndex - 1;
       setSelectedSong(currentPlaylist[newInd]);
-      progressBar.current.value = 0;
-      audioPlayer.current.currentTime = 0
-      setIsPlaying(true);
     }
   };
   const handleNext = () => {
     if (currentSongIndex < currentPlaylist.length - 1) {
       const newInd = currentSongIndex + 1;
       setSelectedSong(currentPlaylist[newInd]);
-      progressBar.current.value = 0;
-      audioPlayer.current.currentTime = 0
-      setIsPlaying(true);
     }
+  };
+
+  const handleUpdate = () => {
+    const currentProgress = parseInt(
+      (audioPlayer.current.currentTime / audioPlayer.current.duration) * 100
+    );
+    setProgress(isNaN(currentProgress) ? 0 : currentProgress);
   };
   return (
     <div className="w-full h-screen flex items-center justify-center p-8">
@@ -90,16 +97,41 @@ export default function Player() {
           />
         </div>
         <div className="w-[80%] md:w-3/4 mt-4">
-          <input
-            type="range"
-            defaultValue={"0"}
-            min={0}
-            max={selectedSong.duration}
-            className="w-full"
-            ref={progressBar}
-            onChange={changeRange}
+          <Slider
+            aria-label="time-indicator"
+            size="small"
+            value={progress}
+            step={0.1}
+            onChange={(_, value) => {
+              audioPlayer.current.currentTime =
+                (value * audioPlayer.current.duration) / 100;
+            }}
+            sx={{
+              color: "#fff",
+              height: 4,
+              "& .MuiSlider-thumb": {
+                width: 4,
+                height: 4,
+                transition: "0.3s cubic-bezier(.47,1.64,.41,.8)",
+                "&:before": {
+                  boxShadow: "0 2px 12px 0 rgba(0,0,0,0.4)",
+                },
+                "&.Mui-active": {
+                  width: 20,
+                  height: 20,
+                },
+              },
+              "& .MuiSlider-rail": {
+                opacity: 0.28,
+              },
+            }}
           />
-          <audio src={selectedSong.url} ref={audioPlayer} />
+          <audio
+            src={selectedSong.url}
+            ref={audioPlayer}
+            onTimeUpdate={handleUpdate}
+            onEnded={handleNext}
+          />
         </div>
         <div className="mt-auto flex justify-between items-center lg:gap-2 md:gap-2 gap-8 lg:w-3/4 md:w-3/4 w-full">
           <IconButton

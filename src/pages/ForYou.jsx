@@ -34,7 +34,6 @@ export default function ForYou() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      console.log("timer");
       refetch({ playlistId: 1, search: query });
     }, 300);
 
